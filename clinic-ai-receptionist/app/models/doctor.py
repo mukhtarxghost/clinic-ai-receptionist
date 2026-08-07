@@ -9,3 +9,5 @@ class Doctor(Base):
     specialization = Column(String, nullable=False)
     start_time = Column(String, nullable=False)
     end_time = Column(String, nullable=False)
+    appointment_duration = Column(Integer, nullable=False)
+    appointment_duration = Column(Integer, nullable=False, default=20)

@@ -4,6 +4,10 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.models.appointment import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
+from app.models.doctor import Doctor
+from app.models.doctor_leave import DoctorLeave
+from datetime import datetime, timedelta
+
 
 router = APIRouter(
     prefix="/appointments",
@@ -83,6 +87,60 @@ def create_appointment(
     appointment: AppointmentCreate,
     db: Session = Depends(get_db)
 ):
+    # Check if doctor exists
+    doctor = db.query(Doctor).filter(
+        Doctor.name == appointment.doctor
+    ).first()
+
+    if doctor is None:
+        return {
+            "success": False,
+            "message": "Doctor not found."
+        }
+
+    # Check if doctor is on leave
+    leave = db.query(DoctorLeave).filter(
+        DoctorLeave.doctor_id == doctor.id,
+        DoctorLeave.date == appointment.date
+    ).first()
+
+    if leave:
+        return {
+            "success": False,
+            "message": "Doctor is on leave.",
+            "reason": leave.reason
+        }
+
+    # Generate valid slots
+    slots = []
+
+    current = datetime.strptime(
+        doctor.start_time,
+        "%H:%M"
+    )
+
+    end = datetime.strptime(
+        doctor.end_time,
+        "%H:%M"
+    )
+
+    while current < end:
+        slots.append(
+            current.strftime("%H:%M")
+        )
+
+        current += timedelta(
+            minutes=doctor.appointment_duration
+        )
+
+    # Check if requested time is valid
+    if appointment.time not in slots:
+        return {
+            "success": False,
+            "message": "Invalid appointment time.",
+            "valid_slots": slots
+        }
+
     # Check if the doctor already has an appointment
     existing_appointment = db.query(Appointment).filter(
         Appointment.doctor == appointment.doctor,
