@@ -7,6 +7,7 @@ from app.models.doctor import Doctor
 from app.models.working_day import WorkingDay
 from app.routes import health, appointments, doctors, working_days
 from app.models.doctor_leave import DoctorLeave
+from app.routes import health, appointments, doctors, working_days, chat
 
 app = FastAPI()
 
@@ -18,3 +19,4 @@ app.include_router(health.router)
 app.include_router(appointments.router)
 app.include_router(doctors.router)
 app.include_router(working_days.router)
+app.include_router(chat.router)
