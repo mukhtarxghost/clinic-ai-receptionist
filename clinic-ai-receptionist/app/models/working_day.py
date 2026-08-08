@@ -7,4 +7,4 @@ class WorkingDay(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     doctor_id = Column(Integer, ForeignKey("doctors.id"))
-    day = Column(String, nullable=False)
+    day = Column(String(20), nullable=False)

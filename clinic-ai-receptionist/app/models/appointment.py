@@ -6,8 +6,8 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     id = Column(Integer, primary_key=True, index=True)
-    patient_name = Column(String, nullable=False)
-    phone = Column(String, nullable=False)
-    doctor = Column(String, nullable=False)
-    date = Column(String, nullable=False)
-    time = Column(String, nullable=False)
+    patient_name = Column(String(255), nullable=False)
+    phone = Column(String(20), nullable=False)
+    doctor = Column(String(255), nullable=False)
+    date = Column(String(20), nullable=False)
+    time = Column(String(20), nullable=False)
