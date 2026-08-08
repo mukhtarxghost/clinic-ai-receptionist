@@ -13,3 +13,4 @@ class DoctorUpdate(BaseModel):
     start_time: str
     end_time: str
     appointment_duration: int
+    
