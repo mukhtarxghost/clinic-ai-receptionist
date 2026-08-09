@@ -8,12 +8,10 @@ from app.services.tools import get_all_doctors
 from app.services.session_manager import (
     get_session,
     update_session,
-    clear_session,
 )
-
 router = APIRouter(
     prefix="/chat",
-    tags=["AI Chat"]
+    tags=["AI Chat"],
 )
 
 
@@ -21,18 +19,13 @@ class ChatRequest(BaseModel):
     message: str
 
 
-@router.post("/")
-def chat(
-    request: ChatRequest,
-    db: Session = Depends(get_db)
+def generate_ai_reply(
+    user_id: str,
+    message: str,
+    db: Session,
 ):
-    # Temporary user ID
-    user_id = "demo_user"
-
-    # Load conversation memory
     session = get_session(user_id)
 
-    # Get doctors from database
     doctors = get_all_doctors(db)
 
     prompt = f"""
@@ -48,21 +41,47 @@ Conversation Memory:
 
 Current User Message:
 
-{request.message}
+{message}
 
 Instructions:
 
-- Use the conversation memory whenever relevant.
-- Remember previous doctor, date, time and phone if available.
-- If the user refers to "tomorrow", "that appointment", "it", etc.,
-  use the conversation memory.
-- Ask only for missing information.
+- Use conversation memory.
+- Remember patient name.
+- Remember phone number.
+- Remember doctor.
+- Remember date.
+- Remember appointment time.
 - Never invent doctors.
-- Only use doctors listed above.
-- Answer naturally.
+- Only use doctors from the database.
 """
 
     reply = ask_gemini(prompt)
+
+    update_session(
+        user_id,
+        "last_user_message",
+        message,
+    )
+
+    update_session(
+        user_id,
+        "last_ai_reply",
+        reply,
+    )
+
+    return reply
+
+
+@router.post("/")
+def chat(
+    request: ChatRequest,
+    db: Session = Depends(get_db),
+):
+    reply = generate_ai_reply(
+        user_id="demo_user",
+        message=request.message,
+        db=db,
+    )
 
     return {
         "reply": reply
