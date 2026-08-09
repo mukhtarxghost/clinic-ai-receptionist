@@ -9,7 +9,11 @@ from app.routes import health, appointments, doctors, working_days
 from app.models.doctor_leave import DoctorLeave
 from app.routes import health, appointments, doctors, working_days, chat
 
+
 app = FastAPI()
+from app.routes.webhook import router as webhook_router
+
+app.include_router(webhook_router)
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
