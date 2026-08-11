@@ -1,9 +1,11 @@
 from app.database.database import SessionLocal
+
 from app.services.tools import (
     get_all_doctors,
     get_doctor_by_name,
     get_patient_appointments,
 )
+
 from app.services.appointment_service import (
     book_appointment,
     cancel_appointment,
@@ -110,7 +112,8 @@ def ai_cancel_appointment(
         )
     finally:
         db.close()
-        
+
+
 def ai_reschedule_appointment(
     phone: str,
     doctor_name: str,
@@ -144,6 +147,8 @@ def ai_reschedule_appointment(
         )
     finally:
         db.close()
+
+
 def ai_get_next_available_slot(
     doctor_name: str,
     date: str,
@@ -155,14 +160,28 @@ def ai_get_next_available_slot(
         doctor_name: Doctor's full name.
         date: Date in YYYY-MM-DD format.
     """
+
+    print(
+        "🔥 NEXT AVAILABLE TOOL CALLED:",
+        doctor_name,
+        date,
+    )
+
     db = SessionLocal()
 
     try:
-        return get_next_available_slot(
+        result = get_next_available_slot(
             db=db,
             doctor_name=doctor_name,
             date=date,
         )
+
+        print(
+            "🔥 TOOL RESULT:",
+            result,
+        )
+
+        return result
+
     finally:
         db.close()
-        
