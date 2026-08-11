@@ -5,7 +5,6 @@ from google import genai
 from google.genai import types
 
 from app.services.gemini_tools import (
-   
     ai_get_all_doctors,
     ai_get_doctor_by_name,
     ai_get_patient_appointments,
@@ -13,7 +12,6 @@ from app.services.gemini_tools import (
     ai_cancel_appointment,
     ai_reschedule_appointment,
     ai_get_next_available_slot,
-
 )
 
 load_dotenv()
@@ -240,5 +238,10 @@ GENERAL RULES
             ],
         ),
     )
+
+    print("🔥 GEMINI PARTS:")
+
+    for part in response.candidates[0].content.parts:
+        print("PART:", part)
 
     return response.text
