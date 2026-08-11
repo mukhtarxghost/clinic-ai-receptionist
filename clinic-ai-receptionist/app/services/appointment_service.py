@@ -80,10 +80,6 @@ def doctor_is_on_leave(
 ):
     """
     Check whether a doctor is on leave on a requested date.
-
-    Handles both:
-    YYYY-MM-DD
-    DD/MM/YYYY
     """
 
     requested = normalize_date(requested_date)
@@ -485,10 +481,36 @@ def get_next_available_slot(
         Appointment.date == requested_date,
     ).all()
 
+    # -----------------------------------------------------
+    # DEBUG
+    # -----------------------------------------------------
+
+    print("🔥 DEBUG DOCTOR:", doctor.name)
+    print("🔥 DEBUG DATE:", requested_date)
+    print("🔥 DEBUG START:", doctor.start_time)
+    print("🔥 DEBUG END:", doctor.end_time)
+    print("🔥 DEBUG DURATION:", doctor.appointment_duration)
+
+    print("🔥 DEBUG BOOKINGS:", [
+        {
+            "id": a.id,
+            "doctor": a.doctor,
+            "date": a.date,
+            "time": a.time,
+        }
+        for a in booked
+    ])
+
+    # -----------------------------------------------------
+    # NORMALIZE BOOKED SLOTS
+    # -----------------------------------------------------
+
     booked_slots = {
         normalize_time(appointment.time)
         for appointment in booked
     }
+
+    print("🔥 DEBUG BOOKED SLOTS:", booked_slots)
 
     # -----------------------------------------------------
     # GENERATE SLOTS
@@ -502,6 +524,9 @@ def get_next_available_slot(
             "success": False,
             "message": "Doctor working hours are invalid."
         }
+
+    print("🔥 DEBUG NORMALIZED START:", start)
+    print("🔥 DEBUG NORMALIZED END:", end)
 
     current = datetime.strptime(
         start,
@@ -517,7 +542,16 @@ def get_next_available_slot(
 
         slot = current.strftime("%H:%M")
 
+        print(
+            "🔥 DEBUG CHECKING SLOT:",
+            slot,
+            "| BOOKED:",
+            slot in booked_slots
+        )
+
         if slot not in booked_slots:
+            print("🔥 DEBUG FREE SLOT FOUND:", slot)
+
             return {
                 "success": True,
                 "date": requested_date,
@@ -527,6 +561,8 @@ def get_next_available_slot(
         current += timedelta(
             minutes=int(doctor.appointment_duration)
         )
+
+    print("🔥 DEBUG RESULT: NO SLOTS AVAILABLE")
 
     return {
         "success": False,
