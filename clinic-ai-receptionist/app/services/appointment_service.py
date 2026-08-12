@@ -45,7 +45,7 @@ def normalize_date(value):
 
 def normalize_time(value):
     """
-    Convert supported time formats into HH:MM.
+    Convert appointment times into HH:MM.
     """
 
     if value is None:
@@ -63,6 +63,57 @@ def normalize_time(value):
     for fmt in formats:
         try:
             return datetime.strptime(value, fmt).strftime("%H:%M")
+        except ValueError:
+            continue
+
+    return None
+
+
+def normalize_working_time(value):
+    """
+    Normalize doctor working hours into 24-hour HH:MM format.
+
+    The database stores clinic hours such as:
+        9:00 -> 09:00
+        5:00 -> 17:00
+
+    Explicit AM/PM values are also supported:
+        9:00 AM -> 09:00
+        5:00 PM -> 17:00
+    """
+
+    if value is None:
+        return None
+
+    value = str(value).strip()
+
+    # Explicit AM/PM
+    for fmt in (
+        "%I:%M %p",
+        "%I:%M%p",
+    ):
+        try:
+            return datetime.strptime(value, fmt).strftime("%H:%M")
+        except ValueError:
+            continue
+
+    # Database working-hour format
+    for fmt in (
+        "%H:%M",
+        "%H:%M:%S",
+    ):
+        try:
+            parsed = datetime.strptime(value, fmt)
+
+            # Clinic hours such as 4:00 / 5:00 represent
+            # afternoon closing times.
+            if parsed.hour < 8:
+                parsed = parsed.replace(
+                    hour=parsed.hour + 12
+                )
+
+            return parsed.strftime("%H:%M")
+
         except ValueError:
             continue
 
@@ -118,8 +169,13 @@ def is_valid_time(
     if requested is None:
         return False
 
-    start = normalize_time(doctor.start_time)
-    end = normalize_time(doctor.end_time)
+    start = normalize_working_time(
+        doctor.start_time
+    )
+
+    end = normalize_working_time(
+        doctor.end_time
+    )
 
     if start is None or end is None:
         return False
@@ -160,13 +216,19 @@ def book_appointment(
     if requested_date is None:
         return {
             "success": False,
-            "message": "Invalid appointment date. Please use YYYY-MM-DD."
+            "message": (
+                "Invalid appointment date. "
+                "Please use YYYY-MM-DD."
+            )
         }
 
     if requested_time is None:
         return {
             "success": False,
-            "message": "Invalid appointment time. Please use HH:MM."
+            "message": (
+                "Invalid appointment time. "
+                "Please use HH:MM."
+            )
         }
 
     doctor = db.query(Doctor).filter(
@@ -210,7 +272,8 @@ def book_appointment(
                 f"{doctor.name} is not available at "
                 f"{requested_time}. "
                 f"Working hours are "
-                f"{doctor.start_time} to {doctor.end_time}."
+                f"{doctor.start_time} to "
+                f"{doctor.end_time}."
             )
         }
 
@@ -389,7 +452,8 @@ def reschedule_appointment(
                 f"{doctor.name} is not available at "
                 f"{new_time}. "
                 f"Working hours are "
-                f"{doctor.start_time} to {doctor.end_time}."
+                f"{doctor.start_time} to "
+                f"{doctor.end_time}."
             )
         }
 
@@ -407,7 +471,9 @@ def reschedule_appointment(
     if existing:
         return {
             "success": False,
-            "message": "Requested slot is already booked."
+            "message": (
+                "Requested slot is already booked."
+            )
         }
 
     # -----------------------------------------------------
@@ -422,7 +488,9 @@ def reschedule_appointment(
 
     return {
         "success": True,
-        "message": "Appointment rescheduled successfully.",
+        "message": (
+            "Appointment rescheduled successfully."
+        ),
         "date": new_date,
         "time": new_time,
     }
@@ -442,7 +510,9 @@ def get_next_available_slot(
     if requested_date is None:
         return {
             "success": False,
-            "message": "Invalid date. Please use YYYY-MM-DD."
+            "message": (
+                "Invalid date. Please use YYYY-MM-DD."
+            )
         }
 
     doctor = db.query(Doctor).filter(
@@ -489,17 +559,23 @@ def get_next_available_slot(
     print("🔥 DEBUG DATE:", requested_date)
     print("🔥 DEBUG START:", doctor.start_time)
     print("🔥 DEBUG END:", doctor.end_time)
-    print("🔥 DEBUG DURATION:", doctor.appointment_duration)
+    print(
+        "🔥 DEBUG DURATION:",
+        doctor.appointment_duration
+    )
 
-    print("🔥 DEBUG BOOKINGS:", [
-        {
-            "id": a.id,
-            "doctor": a.doctor,
-            "date": a.date,
-            "time": a.time,
-        }
-        for a in booked
-    ])
+    print(
+        "🔥 DEBUG BOOKINGS:",
+        [
+            {
+                "id": a.id,
+                "doctor": a.doctor,
+                "date": a.date,
+                "time": a.time,
+            }
+            for a in booked
+        ]
+    )
 
     # -----------------------------------------------------
     # NORMALIZE BOOKED SLOTS
@@ -510,23 +586,40 @@ def get_next_available_slot(
         for appointment in booked
     }
 
-    print("🔥 DEBUG BOOKED SLOTS:", booked_slots)
+    print(
+        "🔥 DEBUG BOOKED SLOTS:",
+        booked_slots
+    )
 
     # -----------------------------------------------------
     # GENERATE SLOTS
     # -----------------------------------------------------
 
-    start = normalize_time(doctor.start_time)
-    end = normalize_time(doctor.end_time)
+    start = normalize_working_time(
+        doctor.start_time
+    )
+
+    end = normalize_working_time(
+        doctor.end_time
+    )
 
     if start is None or end is None:
         return {
             "success": False,
-            "message": "Doctor working hours are invalid."
+            "message": (
+                "Doctor working hours are invalid."
+            )
         }
 
-    print("🔥 DEBUG NORMALIZED START:", start)
-    print("🔥 DEBUG NORMALIZED END:", end)
+    print(
+        "🔥 DEBUG NORMALIZED START:",
+        start
+    )
+
+    print(
+        "🔥 DEBUG NORMALIZED END:",
+        end
+    )
 
     current = datetime.strptime(
         start,
@@ -550,7 +643,10 @@ def get_next_available_slot(
         )
 
         if slot not in booked_slots:
-            print("🔥 DEBUG FREE SLOT FOUND:", slot)
+            print(
+                "🔥 DEBUG FREE SLOT FOUND:",
+                slot
+            )
 
             return {
                 "success": True,
@@ -559,10 +655,14 @@ def get_next_available_slot(
             }
 
         current += timedelta(
-            minutes=int(doctor.appointment_duration)
+            minutes=int(
+                doctor.appointment_duration
+            )
         )
 
-    print("🔥 DEBUG RESULT: NO SLOTS AVAILABLE")
+    print(
+        "🔥 DEBUG RESULT: NO SLOTS AVAILABLE"
+    )
 
     return {
         "success": False,
